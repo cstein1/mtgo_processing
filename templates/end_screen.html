@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <style>
+/* Three image containers (use 25% for four, and 50% for two, etc) */
+.column {
+  float: left;
+}
+
+/* Clear floats after image containers */
+.row::after {
+  content: "";
+  clear: both;
+  display: table;
+} 
+     </style>
+    <meta charset="UTF-8">
+    <title>Charlie! :)</title>
+</head>
+<body>
+    You drafted 45 cards.<br>
+    You guessed {{ session["choice_result"] }} correctly!<br>
+
+    <a href="play">Play again?</a>
+</body>

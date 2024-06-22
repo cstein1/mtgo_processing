@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Charlie! :)</title>
+</head>
+<body>
+    <h1>
+        {% if error %}
+        Failed to load game with error: {{ error }}<br/>
+        {% endif %}
+        <form method="post" enctype="multipart/form-data">
+            <div>
+            <label for="file">Choose file to upload</label><br/>
+            <input type="file" id="file" name="file" />
+            </div>
+            <div>
+            <button>Submit</button>
+            </div>
+        </form>          
+    </h1>
+</body>

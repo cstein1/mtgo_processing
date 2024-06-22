@@ -11,12 +11,24 @@ class Card:
             )
     clicked: bool = False
     scryfall_image_url = "https://api.scryfall.com/cards/named?fuzzy="
+    my_image_url = ""
+    my_image_path = ""
 
     def __init__(self, name=""):
         self.name = name
 
     def get_scryfall_url(self) -> str:
         return self.scryfall_image_url+self.safe_name().replace(" ", "+")
+    
+    # req_json is the scryfall url from get_scryfall_url
+    def get_scryfall_image_url_from_scryfall_response(self, req_json) -> str: 
+        if (double_faced := "card_faces") in req_json and "image_uris" not in req_json:
+            req_json = req_json[double_faced][0]
+        if (image_keys := "image_uris") in req_json:
+            if (small_key := "small") in req_json[image_keys]:
+                return req_json[image_keys][small_key]
+            return req_json[image_keys]
+        return None
 
     def safe_name(self) -> str:
         return self.name.replace(",", " ").replace("/", " ").replace("&", " ").replace("'", " ").replace("\"", " ").replace("Ã", " ")
@@ -29,8 +41,19 @@ class Card:
         return os.path.join(
                         path_to_files, self.safe_name() + ".jpg"
                 )
+    
+    def get_scryfall_then_image_url(self) -> str:
+        if self.my_image_url:
+            return self.my_image_url
+        req = requests.get(
+                url=self.get_scryfall_url()
+            )
+        if req.status_code == 200:
+            req_json = req.json()
+            return self.get_scryfall_image_url_from_scryfall_response(req_json)
+        
 
-    def download_card_image(self, pathname=""):
+    def download_or_get_existing_card_image(self, pathname=""):
         path_to_files = os.path.dirname(pathname)
         if not pathname:
             path_to_files = self.default_path
@@ -42,26 +65,31 @@ class Card:
         path_to_card = os.path.join(
                         path_to_files, self.safe_name() + ".jpg"
                 )
-        if not os.path.exists(path_to_card):
-            print("Downloading card from: " + self.get_scryfall_url())
+        self.my_image_path = path_to_card
+        if not (card_file := os.path.exists(path_to_card)):
+            print("Downloading card from: " + self.get_scryfall_url() + "\n\tTo: " + path_to_card)
             req = requests.get(
                 url=self.get_scryfall_url()
             )
             if req.status_code == 200:
                 req_json = req.json()
-                if (double_faced := "card_faces") in req_json and "image_uris" not in req_json:
-                    req_json = req_json[double_faced][0]
-                if (image_keys := "image_uris") in req_json:
-                    if (small_key := "small") in req_json[image_keys]:
-                        req = requests.get(url=req_json[image_keys][small_key])
-                        if req.status_code == 200:
-                            with open(path_to_card, 'wb') as f:
-                                f.write(req.content)
-                        time.sleep(.75)
+                new_url = self.get_scryfall_image_url_from_scryfall_response(req_json)
+                req = requests.get(url=new_url)
+                if req.status_code == 200:
+                    with open(path_to_card, 'wb') as f:
+                        self.my_image_url = new_url
+                        f.write(req.content)
+                else:
+                    return
+                time.sleep(.75)
+                return path_to_card
             else:
                 print(req)
                 print("Failed to get card " + self.name)
-        
+        else:
+            return card_file
+
+    
     def __init__(self, name):
         self.name = name
 
@@ -97,6 +125,7 @@ class Draft:
     """A draft is a data object of a list of packs along
     with the picks made per each pack"""
     packs: list[Pack] = []
+    file: str = ""
     CARDS: str = "cards" # keyname
     PICK: str = "pick" # keyname
     EXT: str = ".jpg" # image extention
@@ -104,6 +133,7 @@ class Draft:
     def __init__(self, filename: str):
         self.packs = []
         self.parse_file(filename)
+        self.file = filename
 
     def parse_file(self, filename: str):
         if not os.path.exists(filename):
@@ -156,7 +186,7 @@ class Draft:
     def download_images(self):
         for vals in self.to_json().values():
             for card in vals[self.CARDS]:
-                card.download_card_image()
+                card.download_or_get_existing_card_image()
                 
     def pretty_print(self) -> str:
         return json.dumps(self.to_json(), indent=3)
@@ -170,6 +200,13 @@ class Deck:
     
     def add_wrong_card(self, new_card: Card):
         self.wrong_cards.append(new_card)
+    
+    def __str__(self):
+        return "%".join(map(lambda x: str(x), self.cards, self.wrong_cards)) 
+    
+    def to_string(self):
+        return str(self)
+
 
 if __name__ == "__main__":
     file = os.path.join(
@@ -179,3 +216,4 @@ if __name__ == "__main__":
 
     new_game = Draft(file)
     print(new_game.download_images())
+
