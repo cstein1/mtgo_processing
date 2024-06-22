@@ -21,14 +21,9 @@ picked_url_key = "picked_url"
 choice_result_key = "choice_result"
 
 @app.route('/draft/play', methods=["POST", "GET"])
-def draft_play(draft_file: str=None):
-    draft_file = request.args.get("draft_file")
-    if not draft_file:
-        return render_fail_case("draft file missing as param")
-
+def draft_play():
     # File is draft! Time to play :)
-    session[draft_key] = draft_file
-    draft = mtg_helper.Draft(str(draft_file))
+    draft = mtg_helper.Draft(str(session[draft_key]))
     session[deck_key] = []
     session[pick_key] = 0
     session[picked_url_key] = []
@@ -71,7 +66,8 @@ def draft_ingest_file(error=None):
             return render_fail_case("file shows as nil")
         print("filename shows as " + f.filename)
         f.save(f.filename)
-        return app.redirect(app.url_for(endpoint="draft_play", draft_file=f.filename), 200)
+        session[draft_key] = f.filename
+        return app.redirect(app.url_for(endpoint="draft_play"), 200)
     return render_template('draft_getter.html')
 
 if __name__ == "__main__":
