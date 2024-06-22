@@ -42,7 +42,7 @@ def click_card(card: str):
 
     # Add a check for exceeding number here
     if int(session[pick_key]) >= len(draft_instance.packs)-1:
-        return app.redirect(app.url_for("show_results"), 200)
+        return redirect(url_for("show_results"), 200)
     session[picked_url_key].append(mtg_helper.Card(draft_list[session[pick_key]][draft_instance.PICK]).get_scryfall_then_image_url())
     session[pick_key] += 1
     
@@ -67,7 +67,7 @@ def draft_ingest_file(error=None):
         print("filename shows as " + f.filename)
         f.save(f.filename)
         session[draft_key] = f.filename
-        return app.redirect(app.url_for(endpoint="draft_play"), 200)
+        return redirect(url_for(endpoint="draft_play"), 200)
     return render_template('draft_getter.html')
 
 if __name__ == "__main__":
